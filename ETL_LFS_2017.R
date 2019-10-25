@@ -75,8 +75,9 @@ ldvl_2017 <- lfs_2017 %>%
       train0 %in% c(
         'Chứng chỉ nghề dưới 3 tháng',
         'Kỹ năng nghề dưới 3 tháng',
-        'CNKT không bằng'
-      ) ~ 'CNKT không bằng, CC, kỹ năng nghề dưới 3 tháng',
+        'CNKT không bằng',
+        'Không có trình độ, kỹ năng nghề'
+      ) ~ 'Không có trình độ, kỹ năng nghề',
       TRUE ~ train0
     ),
     train2 = case_when(
@@ -91,12 +92,24 @@ ldvl_2017 <- lfs_2017 %>%
       TRUE ~ train0
     ),
     ttnt = case_when(ttnt == 1 ~ 'Thành thị', ttnt == 2 ~ 'Nông thôn', TRUE ~ 'Missing'),
-    employment = if_else(hdkt == 1 &
-                           in_vietnam == 1 &
-                           age >= 15, 'Có việc làm', 'Không'),
-    unemployment = if_else(hdkt == 2 &
-                             in_vietnam == 1 &
-                             age >= 15, 'Thất nghiệp', 'Không'),
+    employment = case_when(
+      hdkt == 1 &
+        in_vietnam == 1 &
+        age >= 15 ~
+        'Có việc làm',
+      in_vietnam == 1 &
+        age >= 15 ~ 'Không',
+      TRUE ~ 'Missing'
+    ),
+    unemployment = case_when(
+      hdkt == 2 &
+        in_vietnam == 1 &
+        age >= 15 ~
+        'Thất nghiệp',
+      in_vietnam == 1 &
+        age >= 15 ~ 'Không',
+      TRUE ~ 'Missing'
+    ),
     # Tổng số giờ lv trong tuần
     weekhour = c40,
     underemployment = case_when(
@@ -108,14 +121,28 @@ ldvl_2017 <- lfs_2017 %>%
     labour_force = case_when(
       hdkt %in% c(1, 2) &
         in_vietnam == 1 &
-        age >= 15 ~ 'Lực lượng lao đông',
-      TRUE ~ 'Không'
+        age >= 15 ~ 'Lực lượng lao động',
+      in_vietnam == 1 &
+        age >= 15 ~ 'Không',
+      TRUE ~ 'Missing'
     ),
-    lfp_rate = if_else(labour_force == 1 , 100, 0),
-    unemployment_rate = if_else(unemployment == 1, 100, 0),
-    underemployment_rate = if_else(underemployment == 1, 100, 0),
+    lfp_rate = case_when(
+      labour_force == 'Lực lượng lao động' ~ 100,
+      labour_force == 'Không' ~ 0,
+      TRUE ~ NA_real_
+    ),
+    unemployment_rate = case_when(
+      unemployment == 'Thất nghiệp' ~ 100,
+      unemployment == 'Không' ~ 0,
+      TRUE ~ NA_real_
+    ),
+    underemployment_rate = case_when(
+      underemployment == 'Thiếu việc làm' ~ 100,
+      underemployment == 'Không' ~ 0,
+      TRUE ~ NA_real_
+    ),
     economic_sector = case_when(
-      c26 %in% c(1, 2) ~ 'Hộ NLT/ Cá nhân',
+      c26  %in% c(1, 2) ~ 'Hộ NLT/ Cá nhân',
       c26 == 3 ~ 'Hộ SXKD cá thể',
       c26 == 4 ~ 'Tập thể',
       c26 %in% c(5, 6) ~ 'Tư nhân',
@@ -139,48 +166,54 @@ ldvl_2017 <- lfs_2017 %>%
       c26 == 12 ~ "Tổ chức, đoàn thể khác",
       TRUE ~  "Missing"
     ),
-    occup2 = round(c24 / 100, 0),
+    occup2 = c24 %/% 100,
     occup1 = f_occup1(occup2),
-    indus2 = round(c25 / 100, 0),
+    indus2 = c25 %/% 100,
     indus1 = f_indus1(indus2),
-    employment_status = case_when(c30 == 1 ~ 'Chủ cơ sở',
-                                  c30 == 2 ~ 'Tự làm',
-                                  c30 == 3 ~ 'Lao động GĐ',
-                                  c30 == 4 ~ 'Xã viên HTX',
-                                  c30 == 5 ~ 'Làm công hưởng lương',
-                                  TRUE ~ 'Missing'
+    employment_status = case_when(
+      c30 == 1 ~ 'Chủ cơ sở',
+      c30 == 2 ~ 'Tự làm',
+      c30 == 3 ~ 'Lao động GĐ',
+      c30 == 4 ~ 'Xã viên HTX',
+      c30 == 5 ~ 'Làm công hưởng lương',
+      TRUE ~ 'Missing'
     ),
     income_all_job = case_when(c39 > 0 ~ c39, TRUE ~ 0),
     income_main_job = case_when(c39a > 0 ~ c39a, TRUE ~ 0),
     # Thời gian thất nghiệp
-    time_tn = case_when(c59 == 1 ~ 'Dưới 1 tháng', 
-                        c59 == 2 ~ 'Từ 1 - 3 tháng',
-                        c59 == 3 ~ 'Từ 3 - 12 tháng',
-                        c59 == 4 ~ 'Từ 1 - 5 năm',
-                        c59 == 5 ~ 'Trên 5 năm',
-                        TRUE ~ 'Missing'),
-    hinhthuctimviec = case_when(c53 == 1 ~ "Nộp đơn xin việc",
-                                c53 == 2 ~ "Liên hệ/ tư vấn cơ sở dịch vụ việc làm",
-                                c53 == 3 ~ "Qua bạn bè, người thân",
-                                c53 == 4 ~ "Đặt quảng cáo tìm việc",
-                                c53 == 5 ~ "Qua thông báo tuyển dụng",
-                                c53 == 6 ~ "Đang tham gia phỏng vấn",
-                                c53 == 7 ~ "Tìm kiếm việc tự do",
-                                c53 == 8 ~ "Chuẩn bị để bắt đầu hoạt động SX-KD",
-                                TRUE ~ "Missing"),
-    prev_occup2 = round(c61/100, 0),
+    time_tn = case_when(
+      c59 == 1 ~ 'Dưới 1 tháng',
+      c59 == 2 ~ 'Từ 1 - 3 tháng',
+      c59 == 3 ~ 'Từ 3 - 12 tháng',
+      c59 == 4 ~ 'Từ 1 - 5 năm',
+      c59 == 5 ~ 'Trên 5 năm',
+      TRUE ~ 'Missing'
+    ),
+    hinhthuctimviec = case_when(
+      c53 == 1 ~ "Nộp đơn xin việc",
+      c53 == 2 ~ "Liên hệ/ tư vấn cơ sở dịch vụ việc làm",
+      c53 == 3 ~ "Qua bạn bè, người thân",
+      c53 == 4 ~ "Đặt quảng cáo tìm việc",
+      c53 == 5 ~ "Qua thông báo tuyển dụng",
+      c53 == 6 ~ "Đang tham gia phỏng vấn",
+      c53 == 7 ~ "Tìm kiếm việc tự do",
+      c53 == 8 ~ "Chuẩn bị để bắt đầu hoạt động SX-KD",
+      TRUE ~ "Missing"
+    ),
+    prev_occup2 = c61 %/% 100,
     prev_occup1 = f_occup1(prev_occup2),
-    prev_indus2 = round(c62/100, 0),
+    prev_indus2 = c62 %/% 100,
     prev_indus1 = f_indus1(prev_indus2),
     prev_nganh_n_c_d = f_nganh_n_c_d(prev_indus2),
-    employment_status = case_when(c63 == 1 ~ 'Chủ cơ sở',
-                                  c63 == 2 ~ 'Tự làm',
-                                  c63 == 3 ~ 'Lao động GĐ',
-                                  c63 == 4 ~ 'Xã viên HTX',
-                                  c63 == 5 ~ 'Làm công hưởng lương',
-                                  TRUE ~ 'Missing'
+    prev_employment_status = case_when(
+      c63 == 1 ~ 'Chủ cơ sở',
+      c63 == 2 ~ 'Tự làm',
+      c63 == 3 ~ 'Lao động GĐ',
+      c63 == 4 ~ 'Xã viên HTX',
+      c63 == 5 ~ 'Làm công hưởng lương',
+      TRUE ~ 'Missing'
     ),
-    economic_sector = case_when(
+    prev_economic_sector = case_when(
       c64 %in% c(1, 2) ~ 'Hộ NLT/ Cá nhân',
       c64 == 3 ~ 'Hộ SXKD cá thể',
       c64 == 4 ~ 'Tập thể',
@@ -190,30 +223,39 @@ ldvl_2017 <- lfs_2017 %>%
       c64 == 12 ~ 'Tổ chức, đoàn thể khác',
       TRUE ~ 'Missing'
     ),
-    hoatdong = case_when(labour_force == 'Lực lượng lao động' ~ 'Tham gia LLLĐ',
-                         c19 == 2 ~ 'Sinh viên/ học sinh',
-                         !is.na(c19) ~ 'Khác',
-                         TRUE ~ 'Missing'),
-    lydokolv = case_when(c19 == 2 ~ 'Sinh viên/ học sinh',
-                         c19 == 3 ~ 'Mất khả năng lao động',
-                         c19 == 5 ~ 'Nội trợ',
-                         !is.na(c19) ~ 'Khác',
-                         TRUE ~ 'Missing'),
-    extra_hours = case_when(c40b > 0 ~ c40, TRUE ~ NA_real_ ),
-    migration = case_when(c10 %in% 1:4 & age >= 5 ~ 'Di cư',
-                          c10 == 5 & age >=5 ~ 'Không di cư',
-                          TRUE ~ 'Khác'),
-    migration_reasons = case_when(c13 == 1 ~ 'Tìm việc',
-                                  c13 == 2 ~ 'Bắt đầu công việc mới',
-                                  c13 == 3 ~ 'Mất việc/ không tìm được việc',
-                                  c13 == 4 ~ 'Theo gia đình/ nghỉ hưu',
-                                  c13 == 5 ~ 'Kết hôn',
-                                  c13 == 6 ~ 'Chuyển nhà',
-                                  c13 == 7 ~ 'Cải thiện điều kiện sống',
-                                  c13 == 8 ~ 'Đi học',
-                                  c13 == 9 ~ 'Khác',
-                                  migration == 'Di cư' ~ 'Khác',
-                                  TRUE ~ 'Missing'),
+    hoatdong = case_when(
+      labour_force == 'Lực lượng lao động' ~ 'Tham gia LLLĐ',
+      c19 == 2 ~ 'Sinh viên/ học sinh',
+      !is.na(c19) ~ 'Khác',
+      TRUE ~ 'Missing'
+    ),
+    lydokolv = case_when(
+      labour_force == 'Lực lượng lao động' ~ 'Missing',
+      c19 == 2 ~ 'Sinh viên/ học sinh',
+      c19 == 3 ~ 'Mất khả năng lao động',
+      c19 == 5 ~ 'Nội trợ',
+      !is.na(c19) ~ 'Khác',
+      TRUE ~ 'Missing'
+    ),
+    extra_hours = case_when(c40b > 0 ~ c40, TRUE ~ NA_real_),
+    migration = case_when(
+      c10 %in% 1:4 & age >= 5 ~ 'Di cư',
+      c10 == 5 & age >= 5 ~ 'Không di cư',
+      TRUE ~ 'Khác'
+    ),
+    migration_reasons = case_when(
+      c13 == 1 ~ 'Tìm việc',
+      c13 == 2 ~ 'Bắt đầu công việc mới',
+      c13 == 3 ~ 'Mất việc/ không tìm được việc',
+      c13 == 4 ~ 'Theo gia đình/ nghỉ hưu',
+      c13 == 5 ~ 'Kết hôn',
+      c13 == 6 ~ 'Chuyển nhà',
+      c13 == 7 ~ 'Cải thiện điều kiện sống',
+      c13 == 8 ~ 'Đi học',
+      c13 == 9 ~ 'Khác',
+      migration == 'Di cư' ~ 'Khác',
+      TRUE ~ 'Missing'
+    ),
     provinces_migration = c12a,
     reg_migration = f_reg6(provinces_migration),
     weight = weigh_final
