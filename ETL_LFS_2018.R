@@ -252,7 +252,8 @@ ldvl_2018 <- lfs_2018 %>%
       c13 == 6 ~ 'Chuyển nhà',
       c13 == 7 ~ 'Cải thiện điều kiện sống',
       c13 == 8 ~ 'Đi học',
-      c13 == 9 ~ 'Khác',
+      c13 == 9 ~ 'Ảnh hưởng môi trường',
+      c13 == 10 ~ 'Khác',
       migration == 'Di cư' ~ 'Khác',
       TRUE ~ 'Missing'
     ),
