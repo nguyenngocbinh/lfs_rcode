@@ -176,7 +176,7 @@ ldvl_2016 <- lfs_2016 %>%
       c28 == 5 ~ 'Làm công hưởng lương',
       TRUE ~ 'Missing'
     ),
-    income_all_job = case_when(c39 > 0 ~ c39, TRUE ~ 0),
+    # income_all_job = case_when(c39 > 0 ~ c39, TRUE ~ 0),
     income_main_job = case_when(c40 > 0 ~ c40, TRUE ~ 0),
     # Thời gian thất nghiệp
     time_tn = case_when(
